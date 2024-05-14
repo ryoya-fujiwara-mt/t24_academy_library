@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import jp.co.metateam.library.model.Account;
+import jp.co.metateam.library.model.BookMst;
+import jp.co.metateam.library.model.BookMstDto;
 import jp.co.metateam.library.model.RentalManage;
 import jp.co.metateam.library.model.RentalManageDto;
 import jp.co.metateam.library.model.Stock;
@@ -88,4 +90,29 @@ public class RentalManageService {
 
         return rentalManage;
     }
+
+     @Transactional
+    public void update(Long id, RentalManageDto rentalManageDto) throws Exception {
+        try {
+            // 既存レコード取得
+            Account account = this.accountRepository.findByEmployeeId(rentalManageDto.getEmployeeId()).orElse(null);
+            Stock stock = this.stockRepository.findById(rentalManageDto.getStockId()).orElse(null);
+            RentalManage updateTargetRental = findById(id);
+            if (updateTargetRental == null) {
+                throw new Exception("RentalManage record not found.");
+            }
+
+            updateTargetRental.setAccount(account);
+            updateTargetRental.setExpectedRentalOn(rentalManageDto.getExpectedRentalOn());
+            updateTargetRental.setExpectedReturnOn(rentalManageDto.getExpectedReturnOn());
+            updateTargetRental.setStock(stock);
+            updateTargetRental.setStatus(rentalManageDto.getStatus());
+
+            // データベースへの保存
+            this.rentalManageRepository.save(updateTargetRental);
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
 }
