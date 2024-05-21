@@ -8,8 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import jp.co.metateam.library.model.RentalManage;
-import jp.co.metateam.library.model.Stock;
-import java.util.Date;
 
 
 @Repository
