@@ -1,4 +1,5 @@
 package jp.co.metateam.library.controller;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -30,6 +31,9 @@ import java.util.Optional;
 
 import jp.co.metateam.library.model.RentalManage;
 import jp.co.metateam.library.model.RentalManageDto;
+
+import java.util.Date;
+
 
 /**
  * 貸出管理関連クラスß
@@ -93,6 +97,17 @@ public class RentalManageController {
     @PostMapping("/rental/add")
     public String save(@Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result, RedirectAttributes ra) {
         try {
+            String errorMesage = checkInventoryStatus(rentalManageDto.getStockId());
+            if(errorMesage != null){
+                result.addError(new FieldError("rentalManageDto", "stockId", errorMesage));
+            }
+            String errorText = Datecheck(rentalManageDto,rentalManageDto.getStockId());
+            if(errorText != null){
+                result.addError(new FieldError("rentalManageDto", "expectedRentalOn", errorText));
+                result.addError(new FieldError("rentalManageDto", "expectedReturnOn", errorText));
+
+            }
+
             if (result.hasErrors()) {
                 throw new Exception("Validation error.");
             }
@@ -136,24 +151,60 @@ public class RentalManageController {
         model.addAttribute("rentalManageDto", rentalManageDto);
         }
         return "rental/edit";
-    
     }
-
 
     @PostMapping("/rental/{id}/edit")
     public String update(@PathVariable("id") String id, @Valid @ModelAttribute RentalManageDto rentalManageDto, BindingResult result, RedirectAttributes ra,Model model) {
+        
         try {
-            RentalManage rentalManage = this.rentalManageService.findById(Long.valueOf(id));
-            
-            String errMsgOfStatus = rentalManageDto.validateStatus(rentalManage.getStatus());
+            String errorMesage = checkInventoryStatus(rentalManageDto.getStockId());
+            if(errorMesage != null){
+                result.addError(new FieldError("rentalManageDto", "stockId", errorMesage));
+            }
+            String errorText = Datecheck(rentalManageDto,rentalManageDto.getStockId(),rentalManageDto.getId());
+            if(errorText != null){
+                result.addError(new FieldError("rentalManageDto", "expectedRentalOn", errorText));
+                result.addError(new FieldError("rentalManageDto", "expectedReturnOn", errorText));
+            }
 
+            RentalManage rentalManage = this.rentalManageService.findById(Long.valueOf(id));
+            String errMsgOfStatus = rentalManageDto.validateStatus(rentalManage.getStatus());
             if(errMsgOfStatus!= null){
                 result.addError(new FieldError("rentalManageDto", "status", errMsgOfStatus)) ;
-            }    
-            
+            }
+
+            if(rentalManage.getStatus() == RentalStatus.RENT_WAIT.getValue()
+            && rentalManageDto.getStatus() == RentalStatus.RENTAlING.getValue()){
+                if(rentalManageDto.isValidRentalDate()!=0){
+                    result.addError(new FieldError("rentalManageDto", "expectedRentalOn", "貸出予定日は現在の日付に設定してください"));
+                }else if(rentalManage.getStatus() == RentalStatus.RENTAlING.getValue()
+                && rentalManageDto.getStatus() == RentalStatus.RETURNED.getValue()){
+                    if(rentalManageDto.isValidReturnDate() != 0){
+                        result.addError(new FieldError("rentalManageDto", "expectedReturnOn", "返却予定日は現在の日付に設定してください"));
+                    }
+                }
+            }
+
             if (result.hasErrors()) {
                 throw new Exception("Validation error.");  
             }
+
+            // if(rentalManage.getStatus() == RentalStatus.RENT_WAIT.getValue()
+            // && rentalManageDto.getStatus() == RentalStatus.RENTAlING.getValue()){
+            //     if(rentalManageDto.isValidRentalDate()!=0){
+            //         model.addAttribute("errorMessage", "貸出予定日は現在の日付に設定してください");
+            //         prepareModelAttributes(model);
+            //         return "rental/edit";
+            //     }
+            // }else if(rentalManage.getStatus() == RentalStatus.RENTAlING.getValue()
+            // && rentalManageDto.getStatus() == RentalStatus.RETURNED.getValue()){
+            //     if(rentalManageDto.isValidReturnDate() != 0){
+            //         model.addAttribute("errorMessage", "返却予定日は現在の日付に設定してください");
+
+            //         return "rental/edit";
+            //     }
+            // }
+            
 
             // 更新処理
             this.rentalManageService.update(Long.valueOf(id),rentalManageDto);
@@ -173,8 +224,48 @@ public class RentalManageController {
             model.addAttribute("stockList",stockList);
             model.addAttribute("rentalStatus", RentalStatus.values());
 
-
             return "rental/edit";
+        } 
+    }
+
+    private String checkInventoryStatus(String id){
+        Stock stock =this.stockService.findById(id);
+            if(stock.getStatus()==0){
+                return null;
+            }else{
+                return "この本は利用できません";
+            }
+    }
+// 登録
+    public String Datecheck(RentalManageDto rentalManageDto,String id){
+        List<RentalManage> rentalAvailable =this.rentalManageService.findByStockIdAndStatusIn(id);
+        if(rentalAvailable != null){
+
+            for(RentalManage rentalManage : rentalAvailable){
+                if(rentalManage.getExpectedReturnOn().after(rentalManageDto.getExpectedRentalOn())
+                 && rentalManage.getExpectedRentalOn().before(rentalManageDto.getExpectedReturnOn())){
+                    return "貸出期間が重複しています";
+                }        
+            }
+            return null;
+        }else{
+            return null;
+        }
+    }
+// 編集
+    public String Datecheck(RentalManageDto rentalManageDto,String id ,Long rentalId){
+        List<RentalManage> rentalManages = this.rentalManageService.findByStockIdAndStatusIn(id,rentalId);
+        if(rentalManages != null){
+
+            for(RentalManage rentalManage : rentalManages){
+                if(rentalManage.getExpectedReturnOn().after(rentalManageDto.getExpectedRentalOn())
+                && rentalManage.getExpectedRentalOn().before(rentalManageDto.getExpectedReturnOn())){
+                    return "貸出期間が重複しています";
+                }
+            }
+            return null;
+        }else{
+            return null;
         }
     }
 
