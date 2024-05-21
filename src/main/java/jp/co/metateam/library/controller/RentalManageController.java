@@ -105,7 +105,6 @@ public class RentalManageController {
             if(errorText != null){
                 result.addError(new FieldError("rentalManageDto", "expectedRentalOn", errorText));
                 result.addError(new FieldError("rentalManageDto", "expectedReturnOn", errorText));
-
             }
 
             if (result.hasErrors()) {
@@ -113,7 +112,6 @@ public class RentalManageController {
             }
             // 登録処理
             this.rentalManageService.save(rentalManageDto);
-            
 
             return "redirect:/rental/index";
         } catch (Exception e) {
@@ -240,7 +238,6 @@ public class RentalManageController {
     public String Datecheck(RentalManageDto rentalManageDto,String id){
         List<RentalManage> rentalAvailable =this.rentalManageService.findByStockIdAndStatusIn(id);
         if(rentalAvailable != null){
-
             for(RentalManage rentalManage : rentalAvailable){
                 if(rentalManage.getExpectedReturnOn().after(rentalManageDto.getExpectedRentalOn())
                  && rentalManage.getExpectedRentalOn().before(rentalManageDto.getExpectedReturnOn())){

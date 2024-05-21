@@ -18,7 +18,7 @@ import jp.co.metateam.library.repository.RentalManageRepository;
 import jp.co.metateam.library.repository.StockRepository;
 import jp.co.metateam.library.values.RentalStatus;
 
-import java.util.Date;
+
 
 @Service
 public class RentalManageService {
