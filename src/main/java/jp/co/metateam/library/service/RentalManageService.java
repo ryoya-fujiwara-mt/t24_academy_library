@@ -18,6 +18,8 @@ import jp.co.metateam.library.repository.RentalManageRepository;
 import jp.co.metateam.library.repository.StockRepository;
 import jp.co.metateam.library.values.RentalStatus;
 
+
+
 @Service
 public class RentalManageService {
 
@@ -46,6 +48,18 @@ public class RentalManageService {
     @Transactional
     public RentalManage findById(Long id) {
         return this.rentalManageRepository.findById(id).orElse(null);
+    }
+
+    @Transactional
+    public List<RentalManage> findByStockIdAndStatusIn(String id,Long rentalId) {
+        List<RentalManage> rentalManages = this.rentalManageRepository.findByStockIdAndStatusIn(id,rentalId);
+        return rentalManages;
+    }
+
+    @Transactional
+    public List<RentalManage> findByStockIdAndStatusIn(String id) {
+        List<RentalManage> rentalManages = this.rentalManageRepository.findByStockAndStatusIn(id);
+        return rentalManages;
     }
 
     @Transactional 
@@ -97,7 +111,9 @@ public class RentalManageService {
             // 既存レコード取得
             Account account = this.accountRepository.findByEmployeeId(rentalManageDto.getEmployeeId()).orElse(null);
             Stock stock = this.stockRepository.findById(rentalManageDto.getStockId()).orElse(null);
+
             RentalManage updateTargetRental = findById(id);
+            
             if (updateTargetRental == null) {
                 throw new Exception("RentalManage record not found.");
             }
@@ -110,6 +126,7 @@ public class RentalManageService {
 
             // データベースへの保存
             this.rentalManageRepository.save(updateTargetRental);
+            
         } catch (Exception e) {
             throw e;
         }
